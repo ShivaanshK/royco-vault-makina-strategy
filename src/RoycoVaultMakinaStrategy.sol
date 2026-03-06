@@ -5,7 +5,8 @@ import {
     BaseStrategyStorage,
     IERC4626,
     IStrategyTemplate,
-    StrategyType
+    StrategyType,
+    IERC20
 } from "../lib/concrete-earn-v2-bug-bounty/src/periphery/strategies/BaseStrategy.sol";
 import {IMachine} from "../lib/makina-core/src/interfaces/IMachine.sol";
 
@@ -20,10 +21,12 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
      * @custom:storage-location erc7201:Royco.storage.RoycoVaultMakinaStrategy
      * @custom:field strategyType - The operational type of this strategy (ATOMIC, ASYNC, or CROSSCHAIN)
      * @custom:field makinaMachine - The Makina machine that this strategy allocates to and deallocates from
+     * @custom:field machineShareToken - The share token of the Makina machine
      */
     struct RoycoVaultMakinaStrategyState {
         StrategyType strategyType;
         address makinaMachine;
+        address machineShareToken;
     }
 
     /// @dev Thrown when an address that is expected to be non-null is set to the null address
@@ -53,6 +56,7 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
         RoycoVaultMakinaStrategyState storage $ = _getRoycoVaultMakinaStrategyStorage();
         $.strategyType = _strategyType;
         $.makinaMachine = _makinaMachine;
+        $.machineShareToken = IMachine(_makinaMachine).shareToken();
     }
 
     /// @inheritdoc IStrategyTemplate
@@ -61,7 +65,14 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
     }
 
     /// @inheritdoc BaseStrategy
-    function _previewPosition() internal view override(BaseStrategy) returns (uint256) {}
+    function _previewPosition() internal view override(BaseStrategy) returns (uint256) {
+        RoycoVaultMakinaStrategyState storage $ = _getRoycoVaultMakinaStrategyStorage();
+        // Get the machine shares owned by the strategy
+        uint256 machineSharesOwned = IERC20($.machineShareToken).balanceOf(address(this));
+        // Return the accounting asset value of the shares owned by the strategy
+        // NOTE: The accounting asset is guaranteed to be identical to the Royco vault's base asset
+        return IMachine($.makinaMachine).convertToAssets(machineSharesOwned);
+    }
 
     /// @inheritdoc BaseStrategy
     function _allocateToPosition(bytes calldata data) internal override(BaseStrategy) returns (uint256) {}
