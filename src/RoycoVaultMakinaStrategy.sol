@@ -5,12 +5,14 @@ import {
     BaseStrategyStorage,
     IERC4626,
     IStrategyTemplate,
-    StrategyType,
-    IERC20
+    StrategyType
 } from "../lib/concrete-earn-v2-bug-bounty/src/periphery/strategies/BaseStrategy.sol";
 import {IMachine} from "../lib/makina-core/src/interfaces/IMachine.sol";
+import {IERC20, SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract RoycoVaultMakinaStrategy is BaseStrategy {
+    using SafeERC20 for IERC20;
+
     /// @dev Storage slot for RoycoVaultMakinaStrategyState using the ERC-7201 pattern
     // keccak256(abi.encode(uint256(keccak256("Royco.storage.RoycoVaultMakinaStrategy")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant ROYCO_VAULT_MAKINA_STRATEGY_STORAGE_SLOT =
@@ -32,6 +34,9 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
     /// @dev Thrown when an address that is expected to be non-null is set to the null address
     error VAULT_AND_MACHINE_ASSET_MISMATCH();
 
+    /// @dev Thrown when the allocation params are not exactly 64 bytes (amount to allocate and minimum shares out)
+    error INVALID_ALLOCATION_PARAMS();
+
     /**
      * @notice Initializes the Royco Vault's Makina Machine Strategy
      * @param _admin The designated admin for this strategy
@@ -44,10 +49,8 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
         initializer
     {
         // Ensure that the vault and machine's base assets are identical
-        require(
-            IERC4626(_roycoVault).asset() == IMachine(_makinaMachine).accountingToken(),
-            VAULT_AND_MACHINE_ASSET_MISMATCH()
-        );
+        address roycoVaultAsset = IERC4626(_roycoVault).asset();
+        require(roycoVaultAsset == IMachine(_makinaMachine).accountingToken(), VAULT_AND_MACHINE_ASSET_MISMATCH());
 
         // Initialize the base strategy state
         _initializeBaseStrategy(_admin, _roycoVault);
@@ -57,6 +60,9 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
         $.strategyType = _strategyType;
         $.makinaMachine = _makinaMachine;
         $.machineShareToken = IMachine(_makinaMachine).shareToken();
+
+        // Extend a one-time maximum approval to the machine for pulling assets on deposit
+        IERC20(roycoVaultAsset).forceApprove(_makinaMachine, type(uint256).max);
     }
 
     /// @inheritdoc IStrategyTemplate
@@ -65,22 +71,44 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
     }
 
     /// @inheritdoc BaseStrategy
+    /// @dev The current value of the strategy's position is the asset value of the Makina machine shares owned by the strategy
     function _previewPosition() internal view override(BaseStrategy) returns (uint256) {
         RoycoVaultMakinaStrategyState storage $ = _getRoycoVaultMakinaStrategyStorage();
-        // Get the machine shares owned by the strategy
-        uint256 machineSharesOwned = IERC20($.machineShareToken).balanceOf(address(this));
-        // Return the accounting asset value of the shares owned by the strategy
+        // Get the machine shares owned by this strategy
+        uint256 strategySharesBalance = IERC20($.machineShareToken).balanceOf(address(this));
+        // Return the value of the shares owned by this strategy in the machine's accounting asset
         // NOTE: The accounting asset is guaranteed to be identical to the Royco vault's base asset
-        return IMachine($.makinaMachine).convertToAssets(machineSharesOwned);
+        return IMachine($.makinaMachine).convertToAssets(strategySharesBalance);
     }
 
     /// @inheritdoc BaseStrategy
-    function _allocateToPosition(bytes calldata data) internal override(BaseStrategy) returns (uint256) {}
+    /// @dev Deposits the specified assets into the Makina machine and is minted shares in return
+    /// @dev This strategy contract must be configured as the depositor for the machine
+    function _allocateToPosition(bytes calldata _allocationParams)
+        internal
+        override(BaseStrategy)
+        returns (uint256 amountToAllocate)
+    {
+        // Validate and parse the allocation params to get the amount of assets to allocate and minimum shares to be minted in return
+        require(_allocationParams.length == 64, INVALID_ALLOCATION_PARAMS());
+        uint256 minSharesOut;
+        assembly {
+            amountToAllocate := calldataload(_allocationParams.offset)
+            minSharesOut := calldataload(add(_allocationParams.offset, 0x20))
+        }
+
+        // Deposit the specified assets into the Makina machine
+        // NOTE: Approval for the machine to pull assets was given on initialization
+        IMachine(_getRoycoVaultMakinaStrategyStorage().makinaMachine)
+            .deposit(amountToAllocate, address(this), minSharesOut, bytes32(0));
+    }
 
     /// @inheritdoc BaseStrategy
+    /// @dev This strategy contract must be configured as the redeemer for the machine
     function _deallocateFromPosition(bytes calldata data) internal override(BaseStrategy) returns (uint256) {}
 
     /// @inheritdoc BaseStrategy
+    /// @dev This strategy contract must be configured as the redeemer for the machine
     function _withdrawFromPosition(uint256 assets) internal override(BaseStrategy) returns (uint256) {}
 
     /**
