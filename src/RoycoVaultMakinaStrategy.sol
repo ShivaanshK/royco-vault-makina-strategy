@@ -22,7 +22,7 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
      * @notice Storage state for the Royco Vault's Makina Machine Strategy
      * @custom:storage-location erc7201:Royco.storage.RoycoVaultMakinaStrategy
      * @custom:field strategyType - The operational type of this strategy (ATOMIC, ASYNC, or CROSSCHAIN)
-     * @custom:field makinaMachine - The Makina machine that this strategy allocates to and deallocates from
+     * @custom:field makinaMachine - The Makina machine that this strategy allocates into and deallocates from
      * @custom:field machineShareToken - The share token of the Makina machine
      */
     struct RoycoVaultMakinaStrategyState {
@@ -44,7 +44,7 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
      * @notice Initializes the Royco Vault's Makina Machine Strategy
      * @param _admin The designated admin for this strategy
      * @param _roycoVault The Royco vault that utilizes this strategy
-     * @param _makinaMachine The Makina machine that this strategy allocates to and deallocates from
+     * @param _makinaMachine The Makina machine that this strategy allocates into and deallocates from
      * @param _strategyType The operational type of this strategy (ATOMIC, ASYNC, or CROSSCHAIN)
      */
     function initialize(address _admin, address _roycoVault, address _makinaMachine, StrategyType _strategyType)
@@ -71,6 +71,11 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
     /// @inheritdoc IStrategyTemplate
     function strategyType() external view override(IStrategyTemplate) returns (StrategyType) {
         return _getRoycoVaultMakinaStrategyStorage().strategyType;
+    }
+
+    /// @notice Returns the Makina machine that this strategy allocates into and deallocates from
+    function makinaMachine() external view returns (address) {
+        return _getRoycoVaultMakinaStrategyStorage().makinaMachine;
     }
 
     /// @inheritdoc BaseStrategy
