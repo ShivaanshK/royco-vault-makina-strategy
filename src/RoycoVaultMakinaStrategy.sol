@@ -78,6 +78,16 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
         return _getRoycoVaultMakinaStrategyStorage().makinaMachine;
     }
 
+    /// @inheritdoc IStrategyTemplate
+    /// @dev Returns the max withdrawable assets from this strategy: accounts for vault and machine level liquidity constraints
+    function maxWithdraw() external view virtual override(BaseStrategy) returns (uint256) {
+        // Retrieve the max withdrawable liquidity from the machine and the configured limit for the vault
+        uint256 maxWithdrawableFromMachine = IMachine(_getRoycoVaultMakinaStrategyStorage().makinaMachine).maxWithdraw();
+        uint256 vaultWithdrawalLimit = BaseStrategyStorage.fetch().maxWithdraw;
+        // Return the minimum of the two withdrawal limits
+        return maxWithdrawableFromMachine > vaultWithdrawalLimit ? vaultWithdrawalLimit : maxWithdrawableFromMachine;
+    }
+
     /// @inheritdoc BaseStrategy
     /// @dev The current value of the strategy's position is the asset value of the Makina machine shares owned by the strategy
     function _previewPosition() internal view override(BaseStrategy) returns (uint256) {
@@ -142,12 +152,12 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
      * @return assetsWithdrawn The amount of assets withdrawn from the Makina machine
      */
     function _withdrawAssetsFromMachine(uint256 _assetsToWithdraw) internal returns (uint256 assetsWithdrawn) {
-        IMachine makinaMachine = IMachine(_getRoycoVaultMakinaStrategyStorage().makinaMachine);
+        IMachine machine = IMachine(_getRoycoVaultMakinaStrategyStorage().makinaMachine);
         // Compute the shares equivalent to the value of the assets to withdraw
-        uint256 sharesToRedeem = makinaMachine.convertToShares(_assetsToWithdraw);
+        uint256 sharesToRedeem = machine.convertToShares(_assetsToWithdraw);
         // Redeem the shares from the Makina machine, withdrawing the assets to this strategy contract
         // NOTE: We set min amount out to 0 in order to preclude any rounding related reversions
-        return makinaMachine.redeem(sharesToRedeem, address(this), 0);
+        return machine.redeem(sharesToRedeem, address(this), 0);
     }
 
     /**
