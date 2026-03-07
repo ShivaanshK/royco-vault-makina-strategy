@@ -183,7 +183,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
 
     /// @inheritdoc IStrategyTemplate
     function totalAllocatedValue() external view override(IStrategyTemplate) returns (uint256) {
-        return _previewTotalAssets();
+        return _getStrategyOwnedAssets();
     }
 
     /// @inheritdoc IStrategyTemplate
@@ -201,7 +201,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
         // Retrieve the maximum withdrawable liquid assets from the machine
         uint256 maxWithdrawableAssets = IMachine(MAKINA_MACHINE).maxWithdraw();
         // Return the minimum of the maximum withdrawable assets and the strategy's position in the machine
-        return Math.min(maxWithdrawableAssets, _previewTotalAssets());
+        return Math.min(maxWithdrawableAssets, _getStrategyOwnedAssets());
     }
 
     /// @inheritdoc IStrategyTemplate
@@ -225,20 +225,13 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
     }
 
     /// @dev Internal helper which retrieves the current value of the strategy's position in base assets
-    function _previewTotalAssets() internal view returns (uint256) {
+    function _getStrategyOwnedAssets() internal view returns (uint256) {
         // Get the machine shares owned by this strategy
         uint256 strategyOwnedShares = IERC20(MACHINE_SHARE_TOKEN).balanceOf(address(this));
         // Return the value of the shares owned by this strategy in the machine's accounting asset
         // NOTE: The accounting asset is guaranteed to be identical to the Royco vault's base asset
         return IMachine(MAKINA_MACHINE).convertToAssets(strategyOwnedShares);
     }
-
-    /**
-     * @dev Internal helper which withdraws strategy owned assets from the Makina machine
-     * @param _amountToWithdraw The amount of assets to withdraw from the Makina machine
-     * @param assetsWithdrawn The amount of assets actually withdrawn from the Makina machine
-     */
-    function _withdrawAssetsFromMachineToVault(uint256 _amountToWithdraw) internal returns (uint256 assetsWithdrawn) {}
 
     /// @notice Pauses the strategy, disabling allocations and deallocations
     /// @dev Only callable by a designated admin assigned by the Royco access manager
