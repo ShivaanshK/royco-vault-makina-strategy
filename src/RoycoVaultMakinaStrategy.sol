@@ -54,7 +54,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
     /// @dev Thrown when the allocation params are not exactly 64 bytes (amount to allocate and minimum shares out)
     error INVALID_ALLOCATION_PARAMS();
 
-    /// @dev Thrown when the deallocation params are not exactly 32 bytes (amount to deallocate)
+    /// @dev Thrown when the deallocation params are not exactly 64 bytes (shares to redeem and minimum assets out)
     error INVALID_DEALLOCATION_PARAMS();
 
     /// @dev Thrown when the token being rescued is the base asset
@@ -131,14 +131,17 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
         onlyRoycoVault
         returns (uint256 amountDeallocated)
     {
-        // Validate and parse the deallocation params to get the amount of assets to deallocate
-        require(_deallocationParams.length == 32, INVALID_DEALLOCATION_PARAMS());
+        // Validate and parse the deallocation params to get the shares to redeem and the minimum assets to be deallocated in return
+        require(_deallocationParams.length == 64, INVALID_DEALLOCATION_PARAMS());
+        uint256 sharesToRedeem;
+        uint256 minAssetsOut;
         assembly ("memory-safe") {
-            amountDeallocated := calldataload(_deallocationParams.offset)
+            sharesToRedeem := calldataload(_deallocationParams.offset)
+            minAssetsOut := calldataload(add(_deallocationParams.offset, 0x20))
         }
 
-        // Withdraw the specified assets from the machine directly to the Royco Vault
-        amountDeallocated = _withdrawAssetsFromMachineToVault(amountDeallocated);
+        // Redeem the shares from the Makina machine, withdrawing the assets directly to the Royco vault
+        amountDeallocated = IMachine(MAKINA_MACHINE).redeem(sharesToRedeem, ROYCO_VAULT, minAssetsOut);
 
         emit DeallocateFunds(amountDeallocated);
     }
@@ -156,7 +159,10 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
         returns (uint256 amountWithdrawn)
     {
         // Withdraw the specified assets from the machine directly to the Royco Vault
-        amountWithdrawn = _withdrawAssetsFromMachineToVault(_amountToWithdraw);
+        // Compute the shares equivalent to the value of the amount of assets to withdraw
+        uint256 sharesToRedeem = IMachine(MAKINA_MACHINE).convertToShares(_amountToWithdraw);
+        // Redeem the shares from the Makina machine, withdrawing the assets directly to the Royco vault
+        amountWithdrawn = IMachine(MAKINA_MACHINE).redeem(sharesToRedeem, ROYCO_VAULT, 0);
         emit StrategyWithdraw(amountWithdrawn);
     }
 
@@ -232,12 +238,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
      * @param _amountToWithdraw The amount of assets to withdraw from the Makina machine
      * @param assetsWithdrawn The amount of assets actually withdrawn from the Makina machine
      */
-    function _withdrawAssetsFromMachineToVault(uint256 _amountToWithdraw) internal returns (uint256 assetsWithdrawn) {
-        // Compute the shares equivalent to the value of the amount of assets to withdraw
-        uint256 sharesToRedeem = IMachine(MAKINA_MACHINE).convertToShares(_amountToWithdraw);
-        // Redeem the shares from the Makina machine, withdrawing the assets directly to the Royco vault
-        assetsWithdrawn = IMachine(MAKINA_MACHINE).redeem(sharesToRedeem, ROYCO_VAULT, 0);
-    }
+    function _withdrawAssetsFromMachineToVault(uint256 _amountToWithdraw) internal returns (uint256 assetsWithdrawn) {}
 
     /// @notice Pauses the strategy, disabling allocations and deallocations
     /// @dev Only callable by a designated admin assigned by the Royco access manager
