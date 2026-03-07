@@ -150,7 +150,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, IStrategyTemplate {
     /// @dev Only callable by a designated admin assigned by the Royco access manager
     function rescueToken(address _token, uint256 _amount) external override(IStrategyTemplate) restricted {
         // Ensure that the token to rescue is not the base asset
-        require(_token == ASSET, INVALID_TOKEN_TO_RESCUE());
+        require(_token != ASSET, INVALID_TOKEN_TO_RESCUE());
 
         // Rescue the specified amount of tokens, remitting them back to the caller
         // An amount of 0 is interpreted as the entire token balance of this strategy
