@@ -11,6 +11,12 @@ import {IMachine} from "../lib/makina-core/src/interfaces/IMachine.sol";
 import {IERC20, SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
+/**
+ * @title RoycoVaultMakinaStrategy
+ * @author Shivaansh Kapoor, Ankur Dubey
+ * @notice A strategy contract for Royco vaults, enabling them to allocate assets into Makina machines
+ * @dev This strategy must be configured as the designated depositor and redeemer on the underlying Makina machine
+ */
 contract RoycoVaultMakinaStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
 
