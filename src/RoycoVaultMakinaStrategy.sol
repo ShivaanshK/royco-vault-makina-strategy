@@ -9,6 +9,7 @@ import {
 } from "../lib/concrete-earn-v2-bug-bounty/src/periphery/strategies/BaseStrategy.sol";
 import {IMachine} from "../lib/makina-core/src/interfaces/IMachine.sol";
 import {IERC20, SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 contract RoycoVaultMakinaStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
@@ -74,8 +75,18 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
     }
 
     /// @notice Returns the Makina machine that this strategy allocates into and deallocates from
-    function makinaMachine() external view returns (address) {
+    function getMakinaMachine() external view returns (address) {
         return _getRoycoVaultMakinaStrategyStorage().makinaMachine;
+    }
+
+    /// @dev Should be used as the canonical version of `maxAllocation()` for this strategy
+    /// @dev Returns the max depositable assets into this strategy
+    function maxDeposit() external view returns (uint256) {
+        IMachine machine = IMachine(_getRoycoVaultMakinaStrategyStorage().makinaMachine);
+        // Return the asset value of the maximum mintable shares
+        uint256 maxMintableShares = machine.maxMint();
+        if (maxMintableShares == type(uint256).max) return type(uint256).max;
+        else return machine.convertToAssets(maxMintableShares);
     }
 
     /// @inheritdoc IStrategyTemplate
@@ -84,8 +95,8 @@ contract RoycoVaultMakinaStrategy is BaseStrategy {
         // Retrieve the max withdrawable liquidity from the machine and the configured limit for the vault
         uint256 maxWithdrawableFromMachine = IMachine(_getRoycoVaultMakinaStrategyStorage().makinaMachine).maxWithdraw();
         uint256 vaultWithdrawalLimit = BaseStrategyStorage.fetch().maxWithdraw;
-        // Return the minimum of the two withdrawal limits
-        return maxWithdrawableFromMachine > vaultWithdrawalLimit ? vaultWithdrawalLimit : maxWithdrawableFromMachine;
+        // Return the minimum of the withdrawal limits and the strategy's position in the machine
+        return Math.min(vaultWithdrawalLimit, Math.min(maxWithdrawableFromMachine, _previewPosition()));
     }
 
     /// @inheritdoc BaseStrategy
