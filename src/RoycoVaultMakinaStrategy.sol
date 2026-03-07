@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
 import {IStrategyTemplate, StrategyType} from "../lib/concrete-earn-v2-bug-bounty/src/interface/IStrategyTemplate.sol";
