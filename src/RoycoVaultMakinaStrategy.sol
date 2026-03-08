@@ -48,8 +48,8 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
     /// @dev Thrown when a function permissioned to only be called by the Royco vault is called by another account
     error ONLY_ROYCO_VAULT();
 
-    /// @dev Thrown when the Royco vault and Makina machine has disparate base assets
-    error VAULT_AND_MACHINE_ASSETS_MUST_BE_IDENTICAL();
+    /// @dev Thrown when the Royco vault and Makina machine have disparate base assets
+    error DISPARATE_VAULT_AND_MACHINE_ASSETS();
 
     /// @dev Thrown when the allocation params are not exactly 64 bytes (amount to allocate and minimum shares out)
     error INVALID_ALLOCATION_PARAMS();
@@ -78,7 +78,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
     {
         // Ensure that the Royco vault and machine's base assets are identical
         ASSET = IERC4626(_roycoVault).asset();
-        require(ASSET == IMachine(_makinaMachine).accountingToken(), VAULT_AND_MACHINE_ASSETS_MUST_BE_IDENTICAL());
+        require(ASSET == IMachine(_makinaMachine).accountingToken(), DISPARATE_VAULT_AND_MACHINE_ASSETS());
 
         ROYCO_VAULT = _roycoVault;
         MAKINA_MACHINE = _makinaMachine;
