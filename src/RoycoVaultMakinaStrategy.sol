@@ -84,6 +84,10 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
         MAKINA_MACHINE = _makinaMachine;
         MACHINE_SHARE_TOKEN = IMachine(_makinaMachine).shareToken();
         STRATEGY_TYPE = _strategyType;
+
+        // Extend a one-time maximum approval to the machine for pulling assets on deposit
+        // NOTE: Infinite approval is safe because assets are never idle in this strategy, they are only transiently held during allocations
+        IERC20(ASSET).forceApprove(_makinaMachine, type(uint256).max);
     }
 
     /**
@@ -110,7 +114,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
         IERC20(ASSET).safeTransferFrom(ROYCO_VAULT, address(this), amountAllocated);
 
         // Deposit the specified assets into the Makina machine, minting the shares to this strategy
-        IERC20(ASSET).forceApprove(MAKINA_MACHINE, amountAllocated);
+        // NOTE: Approval for the machine to pull assets was granted on construction
         IMachine(MAKINA_MACHINE).deposit(amountAllocated, address(this), minSharesOut, bytes32(0));
 
         emit AllocateFunds(amountAllocated);
