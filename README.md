@@ -56,10 +56,8 @@ Deployment configs are defined in `script/config/DeploymentConfig.sol`. Each str
 
 ## Security
 
-- Access controlled via OpenZeppelin's `AccessManaged`
+- Access controlled via the Royco Dawn Factory which uses OpenZeppelin's `AccessManaged`
 - Pausable by authorized admins
 - Token rescue function excludes machine share tokens to protect accounting
 
-## License
 
-UNLICENSED
