@@ -1,4 +1,4 @@
-# Royco Vault Makina Strategy
+# Royco Vault Makina Strategy [![CI](https://github.com/roycoprotocol/royco-vault-makina-strategy/actions/workflows/test.yml/badge.svg)](https://github.com/roycoprotocol/royco-vault-makina-strategy/actions/workflows/test.yml)
 
 A strategy contract enabling Royco vaults to allocate assets into Makina machines.
 
