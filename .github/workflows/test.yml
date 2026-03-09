@@ -1,9 +1,6 @@
 name: CI
 
-permissions: {}
-
 on:
-  push:
   pull_request:
   workflow_dispatch:
 
@@ -12,27 +9,36 @@ env:
 
 jobs:
   check:
+    strategy:
+      fail-fast: true
+
     name: Foundry project
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
-          persist-credentials: false
           submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Show Forge version
-        run: forge --version
+        run: |
+          forge --version
 
       - name: Run Forge fmt
-        run: forge fmt --check
+        run: |
+          forge fmt --check
+        id: fmt
 
       - name: Run Forge build
-        run: forge build --sizes
+        run: |
+          forge build --sizes
+        id: build
 
       - name: Run Forge tests
-        run: forge test -vvv
+        run: |
+          forge test -vvv
+        id: test
+        env:
+          MAINNET_RPC_URL: ${{ secrets.MAINNET_RPC_URL }}

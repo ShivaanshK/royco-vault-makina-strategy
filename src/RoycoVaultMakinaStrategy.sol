@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {IStrategyTemplate, StrategyType} from "../lib/concrete-earn-v2-bug-bounty/src/interface/IStrategyTemplate.sol";
-import {IMachine} from "../lib/makina-core/src/interfaces/IMachine.sol";
-import {IERC20, SafeERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC4626} from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
-import {AccessManaged} from "../lib/openzeppelin-contracts/contracts/access/manager/AccessManaged.sol";
-import {Math} from "../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
-import {Pausable} from "../lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
+import { IStrategyTemplate, StrategyType } from "../lib/concrete-earn-v2-bug-bounty/src/interface/IStrategyTemplate.sol";
+import { IMachine } from "../lib/makina-core/src/interfaces/IMachine.sol";
+import { AccessManaged } from "../lib/openzeppelin-contracts/contracts/access/manager/AccessManaged.sol";
+import { IERC4626 } from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
+import { IERC20, SafeERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Pausable } from "../lib/openzeppelin-contracts/contracts/utils/Pausable.sol";
+import { Math } from "../lib/openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 /**
  * @title RoycoVaultMakinaStrategy
@@ -73,9 +73,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
      * @param _makinaMachine The Makina machine that this strategy allocates into and deallocates from
      * @param _strategyType The operational type of this strategy (ATOMIC, ASYNC, or CROSSCHAIN)
      */
-    constructor(address _roycoFactory, address _roycoVault, address _makinaMachine, StrategyType _strategyType)
-        AccessManaged(_roycoFactory)
-    {
+    constructor(address _roycoFactory, address _roycoVault, address _makinaMachine, StrategyType _strategyType) AccessManaged(_roycoFactory) {
         // Ensure that the Royco vault and machine's base assets are identical
         ASSET = IERC4626(_roycoVault).asset();
         require(ASSET == IMachine(_makinaMachine).accountingToken(), DISPARATE_VAULT_AND_MACHINE_ASSETS());
@@ -152,13 +150,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
      * @dev This strategy must be configured as the redeemer for the machine
      * @dev Cannot be called when this strategy is paused
      */
-    function onWithdraw(uint256 _amountToWithdraw)
-        external
-        override(IStrategyTemplate)
-        whenNotPaused
-        onlyRoycoVault
-        returns (uint256 amountWithdrawn)
-    {
+    function onWithdraw(uint256 _amountToWithdraw) external override(IStrategyTemplate) whenNotPaused onlyRoycoVault returns (uint256 amountWithdrawn) {
         // Compute the shares equivalent to the value of the amount of assets to withdraw
         // NOTE: The conversion rounds down, so we pad it by 1 share to ensure that the requested amount to withdraw is always fulfilled
         uint256 sharesToRedeem = IMachine(MAKINA_MACHINE).convertToShares(_amountToWithdraw) + 1;

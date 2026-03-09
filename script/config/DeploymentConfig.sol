@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {StrategyType} from "../../src/RoycoVaultMakinaStrategy.sol";
+import { StrategyType } from "../../src/RoycoVaultMakinaStrategy.sol";
 
 /**
  * @title DeploymentConfig
@@ -12,8 +12,7 @@ abstract contract DeploymentConfig {
 
     string internal constant ROYCO_DAWN_SENIOR_VAULT = "DSV";
 
-    // TODO: Update with new factory once deployed
-    // Deployed using CREATE2, so the address is the same on all chain
+    /// @dev Royco Factory address - deployed using CREATE2, consistent across all chains
     address internal constant ROYCO_FACTORY_ADDRESS = 0xD567cCbb336Eb71eC2537057E2bCF6DB840bB71d;
 
     /// @dev Address of the Royco Dawn Senior Vault
@@ -37,10 +36,7 @@ abstract contract DeploymentConfig {
 
     function _initializeStrategyConfigs() internal {
         _strategyConfigs[ROYCO_DAWN_SENIOR_VAULT] = StrategyDeploymentConfig({
-            roycoFactory: ROYCO_FACTORY_ADDRESS,
-            roycoVault: DSV,
-            makinaMachine: DUSD_MAKINA_MACHINE,
-            strategyType: StrategyType.ASYNC
+            roycoFactory: ROYCO_FACTORY_ADDRESS, roycoVault: DSV, makinaMachine: DUSD_MAKINA_MACHINE, strategyType: StrategyType.ASYNC
         });
     }
 }

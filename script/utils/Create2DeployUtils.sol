@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {Script} from "lib/forge-std/src/Script.sol";
-import {console2} from "lib/forge-std/src/console2.sol";
+import { Script } from "lib/forge-std/src/Script.sol";
+import { console2 } from "lib/forge-std/src/console2.sol";
 
 address constant CREATE2_FACTORY_ADDRESS = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
@@ -13,7 +13,11 @@ contract Create2DeployUtils is Script {
     error NotDeployedToExpectedAddress(address expectedAddress, address deployedAddress);
     error AddressDoesNotContainBytecode(address deployedAddress);
 
-    function _deployWithSanityChecks(bytes32 _salt, bytes memory _creationCode, bool _revertIfAlreadyDeployed)
+    function _deployWithSanityChecks(
+        bytes32 _salt,
+        bytes memory _creationCode,
+        bool _revertIfAlreadyDeployed
+    )
         internal
         returns (address, bool isAlreadyDeployed)
     {
@@ -44,8 +48,7 @@ contract Create2DeployUtils is Script {
     }
 
     function _generateDeterminsticAddress(bytes32 _salt, bytes memory _creationCode) internal pure returns (address) {
-        bytes32 hash =
-            keccak256(abi.encodePacked(bytes1(0xff), CREATE2_FACTORY_ADDRESS, _salt, keccak256(_creationCode)));
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), CREATE2_FACTORY_ADDRESS, _salt, keccak256(_creationCode)));
         return address(uint160(uint256(hash)));
     }
 
