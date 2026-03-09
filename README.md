@@ -28,24 +28,6 @@ Royco Vault <──> Strategy <──> Makina Machine
 - Royco vault and Makina machine must share the same base asset
 - Strategy must be added to the vault's strategy list and deallocation order
 
-## Build
-
-```bash
-forge build
-```
-
-## Test
-
-```bash
-forge test
-```
-
-## Deploy
-
-```bash
-forge script script/Deploy.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast
-```
-
 ## Configuration
 
 Deployment configs are defined in `script/config/DeploymentConfig.sol`. Each strategy requires:
