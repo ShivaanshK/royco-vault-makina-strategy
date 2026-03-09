@@ -1,66 +1,65 @@
-## Foundry
+# Royco Vault Makina Strategy
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A strategy contract enabling Royco vaults to allocate assets into Makina machines.
 
-Foundry consists of:
+## Overview
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+`RoycoVaultMakinaStrategy` serves as a bridge between Royco's vaults and Makina's yield-generating machines. The strategy implements `IStrategyTemplate` and handles:
 
-## Documentation
+- **Allocation**: Deposits vault assets into a Makina machine, receiving share tokens
+- **Deallocation**: Redeems shares from the machine, returning assets to the vault
+- **Withdrawals**: Supports user-initiated withdrawals through the vault's deallocation flow
 
-https://book.getfoundry.sh/
+## Architecture
 
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```
+Royco Vault <──> Strategy <──> Makina Machine
+     │              │               │
+     │   allocate   │    deposit    │
+     ├─────────────>├──────────────>│
+     │              │               │
+     │  deallocate  │    redeem     │
+     │<─────────────┤<──────────────┤
 ```
 
-### Test
+## Requirements
 
-```shell
-$ forge test
+- Strategy must be configured as the depositor and redeemer on the Makina machine
+- Royco vault and Makina machine must share the same base asset
+- Strategy must be added to the vault's strategy list and deallocation order
+
+## Build
+
+```bash
+forge build
 ```
 
-### Format
+## Test
 
-```shell
-$ forge fmt
+```bash
+forge test
 ```
 
-### Gas Snapshots
+## Deploy
 
-```shell
-$ forge snapshot
+```bash
+forge script script/Deploy.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY> --broadcast
 ```
 
-### Anvil
+## Configuration
 
-```shell
-$ anvil
-```
+Deployment configs are defined in `script/config/DeploymentConfig.sol`. Each strategy requires:
 
-### Deploy
+- `roycoVault`: Address of the Royco vault
+- `makinaMachine`: Address of the Makina machine
+- `strategyType`: Operational type (ATOMIC, ASYNC, or CROSSCHAIN)
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+## Security
 
-### Cast
+- Access controlled via OpenZeppelin's `AccessManaged`
+- Pausable by authorized admins
+- Token rescue function excludes machine share tokens to protect accounting
 
-```shell
-$ cast <subcommand>
-```
+## License
 
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+UNLICENSED

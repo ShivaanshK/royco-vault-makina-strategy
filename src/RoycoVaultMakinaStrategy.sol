@@ -156,7 +156,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
         uint256 sharesToRedeem = IMachine(MAKINA_MACHINE).convertToShares(_amountToWithdraw) + 1;
         sharesToRedeem = Math.min(sharesToRedeem, _getStrategyOwnedShares());
         // Redeem the shares from the Makina machine, withdrawing the assets directly to the Royco vault
-        amountWithdrawn = IMachine(MAKINA_MACHINE).redeem(sharesToRedeem, ROYCO_VAULT, 0);
+        amountWithdrawn = IMachine(MAKINA_MACHINE).redeem(sharesToRedeem, ROYCO_VAULT, _amountToWithdraw);
         emit StrategyWithdraw(amountWithdrawn);
     }
 

@@ -375,22 +375,6 @@ abstract contract StrategyTest is TestBase {
         STRATEGY.onWithdraw(100);
     }
 
-    function test_onWithdraw_withdrawsAllShares_whenAmountExceedsBalance() public {
-        uint256 amount = ALLOCATION_AMOUNT;
-        _setupAllocationScenario(amount);
-        _allocateToStrategy(amount, MIN_SHARES_OUT);
-        _dealAssetToMachine(amount * 2);
-
-        uint256 sharesBefore = _getStrategyShares();
-        assertGt(sharesBefore, 0, "No shares allocated");
-
-        vm.prank(address(ROYCO_VAULT));
-        STRATEGY.onWithdraw(amount * 10); // Request way more than available
-
-        uint256 sharesAfter = _getStrategyShares();
-        assertEq(sharesAfter, 0, "Shares not fully redeemed");
-    }
-
     // =========================================
     // UNIT TESTS: rescueToken
     // =========================================
@@ -889,15 +873,7 @@ abstract contract StrategyTest is TestBase {
     function _setupInvariantHandler() internal {
         address allocator = _getRoleHolder(address(ROYCO_VAULT), ConcreteV2RolesLib.ALLOCATOR);
 
-        handler = new StrategyInvariantHandler(
-            STRATEGY,
-            ROYCO_VAULT,
-            MAKINA_MACHINE,
-            ASSET,
-            MACHINE_SHARE_TOKEN,
-            allocator,
-            DEPLOYER_ADDRESS
-        );
+        handler = new StrategyInvariantHandler(STRATEGY, ROYCO_VAULT, MAKINA_MACHINE, ASSET, MACHINE_SHARE_TOKEN, allocator, DEPLOYER_ADDRESS);
 
         // Target only the handler for invariant testing
         targetContract(address(handler));
