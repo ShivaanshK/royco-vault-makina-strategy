@@ -193,6 +193,8 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
     /// @inheritdoc IStrategyTemplate
     /// @dev Returns the max assets depositable into this strategy
     function maxAllocation() external view override(IStrategyTemplate) returns (uint256) {
+        // Preemptively return zero if this strategy is paused or the Makina machine is in recovery mode: deposits are disabled
+        if (paused() || IMakinaGovernable(MAKINA_MACHINE).recoveryMode()) return 0;
         // Return the asset value of the maximum mintable shares
         uint256 maxMintableShares = IMachine(MAKINA_MACHINE).maxMint();
         if (maxMintableShares == type(uint256).max) return type(uint256).max;
@@ -202,7 +204,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
     /// @inheritdoc IStrategyTemplate
     /// @dev Returns the max withdrawable assets from this strategy: accounts for vault and machine level liquidity constraints
     function maxWithdraw() external view override(IStrategyTemplate) returns (uint256) {
-        // Preemptively return zero if this strategy is paused or the Makina machine is in recovery mode (redemptions are disabled)
+        // Preemptively return zero if this strategy is paused or the Makina machine is in recovery mode: redemptions are disabled
         if (paused() || IMakinaGovernable(MAKINA_MACHINE).recoveryMode()) return 0;
         // Retrieve the maximum withdrawable liquid assets from the machine
         // NOTE: Account for the 1 share padding applied in `onWithdraw()` by subtracting 1 share worth of assets from the machine's reported maximum withdrawable assets
