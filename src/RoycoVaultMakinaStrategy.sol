@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import { IStrategyTemplate, StrategyType } from "../lib/concrete-earn-v2-bug-bounty/src/interface/IStrategyTemplate.sol";
 import { IMachine } from "../lib/makina-core/src/interfaces/IMachine.sol";
+import { IMakinaGovernable } from "../lib/makina-core/src/interfaces/IMakinaGovernable.sol";
 import { AccessManaged } from "../lib/openzeppelin-contracts/contracts/access/manager/AccessManaged.sol";
 import { IERC4626 } from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 import { IERC20, SafeERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -44,6 +45,12 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
     /// @notice Emitted when assets are withdrawn from the strategy
     /// @param amount The amount of assets withdrawn
     event StrategyWithdraw(uint256 amount);
+
+    /// @notice Emitted when tokens are rescued from this contract by a designated admin
+    /// @param recipient The recipient of the rescued tokens
+    /// @param token The token rescued
+    /// @param amount The amount of tokens rescued by the recipient
+    event TokenRescue(address indexed recipient, address indexed token, uint256 amount);
 
     /// @dev Thrown when a function permissioned to only be called by the Royco vault is called by another account
     error ONLY_ROYCO_VAULT();
@@ -90,6 +97,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
 
     /**
      * @inheritdoc IStrategyTemplate
+     * @param _allocationParams ABI encoded parameters for allocation: amount of assets to allocate (first 32 bytes) and the minimum shares minted in exchange (second 32 bytes)
      * @dev This strategy must be configured as the depositor for the machine
      * @dev Cannot be called when this strategy is paused
      */
@@ -120,6 +128,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
 
     /**
      * @inheritdoc IStrategyTemplate
+     * @param _deallocationParams ABI encoded parameters for deallocation: amount of shares to redeem (first 32 bytes) and the minimum assets deallocated in exchange (second 32 bytes)
      * @dev This strategy must be configured as the redeemer for the machine
      * @dev Cannot be called when this strategy is paused
      */
@@ -173,6 +182,7 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
         // An amount of 0 is interpreted as the entire token balance of this strategy
         _amount = _amount == 0 ? IERC20(_token).balanceOf(address(this)) : _amount;
         IERC20(_token).safeTransfer(msg.sender, _amount);
+        emit TokenRescue(msg.sender, _token, _amount);
     }
 
     /// @inheritdoc IStrategyTemplate
@@ -192,9 +202,12 @@ contract RoycoVaultMakinaStrategy is AccessManaged, Pausable, IStrategyTemplate 
     /// @inheritdoc IStrategyTemplate
     /// @dev Returns the max withdrawable assets from this strategy: accounts for vault and machine level liquidity constraints
     function maxWithdraw() external view override(IStrategyTemplate) returns (uint256) {
+        // Preemptively return zero if this strategy is paused or the Makina machine is in recovery mode (redemptions are disabled)
+        if (paused() || IMakinaGovernable(MAKINA_MACHINE).recoveryMode()) return 0;
         // Retrieve the maximum withdrawable liquid assets from the machine
-        uint256 maxWithdrawableAssets = IMachine(MAKINA_MACHINE).maxWithdraw();
-        // Return the minimum of the maximum withdrawable assets and the strategy's position in the machine
+        // NOTE: Account for the 1 share padding applied in `onWithdraw()` by subtracting 1 share worth of assets from the machine's reported maximum withdrawable assets
+        uint256 maxWithdrawableAssets = Math.saturatingSub(IMachine(MAKINA_MACHINE).maxWithdraw(), IMachine(MAKINA_MACHINE).convertToAssets(1));
+        // Return the minimum of the machine's maximum withdrawable assets and the strategy's position in the machine
         return Math.min(maxWithdrawableAssets, _getStrategyOwnedAssets());
     }
 
